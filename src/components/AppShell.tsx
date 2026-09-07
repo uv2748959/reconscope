@@ -1,0 +1,35 @@
+import { NavLink, Outlet } from "react-router-dom";
+
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `rounded px-3 py-2 text-sm font-medium ${
+    isActive
+      ? "bg-slate-900 text-white"
+      : "text-slate-700 hover:bg-slate-200"
+  }`;
+
+export default function AppShell() {
+  return (
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <span className="text-lg font-semibold">ReconScope</span>
+          <nav className="flex flex-wrap gap-1">
+            <NavLink to="/" end className={navLinkClass}>
+              Projects
+            </NavLink>
+            <NavLink to="/methodology" className={navLinkClass}>
+              Safety &amp; Methodology
+            </NavLink>
+          </nav>
+        </div>
+        <div className="bg-amber-100 px-4 py-2 text-center text-sm font-medium text-amber-900">
+          Authorized targets only
+        </div>
+      </header>
+
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
