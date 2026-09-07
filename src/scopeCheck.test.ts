@@ -131,3 +131,26 @@ describe("isInScope — undetermined values", () => {
     expect(isInScope("IT Manager", scope)).toBe("undetermined");
   });
 });
+
+describe("isInScope — edge cases", () => {
+  it("flags a hostname and an IP as out_of_scope when no ranges are configured", () => {
+    // An empty rootDomains/ipRanges list means nothing can match the "in
+    // scope" rules in Section 15, so a real hostname or IP is a definite
+    // out_of_scope, not "undetermined" — undetermined is reserved for
+    // values that aren't hostnames or IPs at all.
+    const scope = makeScope({ rootDomains: [], subdomains: [], ipRanges: [] });
+    expect(isInScope("shop.northstar-bicycle.example", scope)).toBe(
+      "out_of_scope",
+    );
+    expect(isInScope("192.0.2.10", scope)).toBe("out_of_scope");
+  });
+
+  it("returns undetermined for a malformed IP that fails octet validation", () => {
+    const scope = makeScope();
+    // 999 is not a valid IPv4 octet (0-255), so "192.0.2.999" is not a
+    // real IP — and it is not a hostname anyone would enter either. Per
+    // Section 15, a value that is neither a hostname nor an IP must
+    // return "undetermined" and must never be flagged red.
+    expect(isInScope("192.0.2.999", scope)).toBe("undetermined");
+  });
+});

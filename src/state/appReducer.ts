@@ -1,10 +1,15 @@
 import type { StorageData } from "../storage";
-import type { Project, Scope } from "../types";
+import type { Observation, Project, Scope, Source, Tag } from "../types";
 
 export type AppAction =
   | { type: "CREATE_PROJECT"; project: Project; scope: Scope }
   | { type: "RENAME_PROJECT"; id: string; name: string; updatedAt: string }
-  | { type: "DELETE_PROJECT"; id: string };
+  | { type: "DELETE_PROJECT"; id: string }
+  | { type: "CREATE_OBSERVATION"; observation: Observation }
+  | { type: "UPDATE_OBSERVATION"; observation: Observation }
+  | { type: "DELETE_OBSERVATION"; id: string }
+  | { type: "CREATE_SOURCE"; source: Source }
+  | { type: "CREATE_TAG"; tag: Tag };
 
 export function appReducer(state: StorageData, action: AppAction): StorageData {
   switch (action.type) {
@@ -30,6 +35,45 @@ export function appReducer(state: StorageData, action: AppAction): StorageData {
         ...state,
         projects: state.projects.filter((project) => project.id !== action.id),
         scopes: state.scopes.filter((scope) => scope.projectId !== action.id),
+        observations: state.observations.filter(
+          (observation) => observation.projectId !== action.id,
+        ),
+      };
+
+    case "CREATE_OBSERVATION":
+      return {
+        ...state,
+        observations: [...state.observations, action.observation],
+      };
+
+    case "UPDATE_OBSERVATION":
+      return {
+        ...state,
+        observations: state.observations.map((observation) =>
+          observation.id === action.observation.id
+            ? action.observation
+            : observation,
+        ),
+      };
+
+    case "DELETE_OBSERVATION":
+      return {
+        ...state,
+        observations: state.observations.filter(
+          (observation) => observation.id !== action.id,
+        ),
+      };
+
+    case "CREATE_SOURCE":
+      return {
+        ...state,
+        sources: [...state.sources, action.source],
+      };
+
+    case "CREATE_TAG":
+      return {
+        ...state,
+        tags: [...state.tags, action.tag],
       };
 
     default:
