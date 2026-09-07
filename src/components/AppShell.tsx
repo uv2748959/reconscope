@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useApp } from "../state/AppContext";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `rounded px-3 py-2 text-sm font-medium ${
@@ -8,6 +9,8 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 export default function AppShell() {
+  const { storageError, dismissStorageError } = useApp();
+
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white">
@@ -26,6 +29,22 @@ export default function AppShell() {
           Authorized targets only
         </div>
       </header>
+
+      {storageError && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 bg-red-100 px-4 py-2 text-sm font-medium text-red-900"
+        >
+          <span>{storageError}</span>
+          <button
+            type="button"
+            onClick={dismissStorageError}
+            className="rounded border border-red-300 px-2 py-1 text-xs"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         <Outlet />

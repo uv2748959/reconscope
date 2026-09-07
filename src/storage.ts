@@ -33,7 +33,7 @@ export class StorageError extends Error {
   }
 }
 
-function createEmptyData(): StorageData {
+export function createEmptyData(): StorageData {
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     projects: [],
