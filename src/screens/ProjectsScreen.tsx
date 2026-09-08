@@ -1,7 +1,8 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState, type ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../state/AppContext";
 import { buildDemoBundle, DEMO_COMPANY_ALIAS } from "../seedData";
+import { parseStorageData, StorageError } from "../storage";
 import type { Project } from "../types";
 
 function AuthorizationBadge({ authorized }: { authorized: boolean }) {
@@ -204,6 +205,64 @@ function DemoDataButton({ existingDemoId }: { existingDemoId: string | null }) {
   );
 }
 
+function ImportProjectButton() {
+  const { dispatch } = useApp();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const inputId = useId();
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = parseStorageData(String(reader.result));
+        dispatch({ type: "IMPORT_DATA", data });
+        setError(null);
+      } catch (err) {
+        setError(
+          err instanceof StorageError
+            ? err.message
+            : "The selected file could not be imported.",
+        );
+      }
+    };
+    reader.onerror = () => setError("The selected file could not be read.");
+    reader.readAsText(file);
+  }
+
+  return (
+    <div>
+      <label htmlFor={inputId} className="sr-only">
+        Import project JSON file
+      </label>
+      <input
+        id={inputId}
+        ref={inputRef}
+        type="file"
+        accept="application/json"
+        onChange={handleFileChange}
+        className="sr-only"
+      />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="rounded border border-slate-300 px-3 py-2 text-sm font-medium"
+      >
+        Import project
+      </button>
+      {error && (
+        <p role="alert" className="mt-1 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function ProjectsScreen() {
   const { state } = useApp();
   const existingDemoId =
@@ -216,6 +275,7 @@ export default function ProjectsScreen() {
         <h1 className="text-2xl font-semibold">Projects</h1>
         <div className="flex flex-wrap items-center gap-3">
           <DemoDataButton existingDemoId={existingDemoId} />
+          <ImportProjectButton />
           <Link
             to="/projects/new"
             className="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white"

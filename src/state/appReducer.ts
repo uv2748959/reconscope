@@ -1,6 +1,14 @@
 import type { StorageData } from "../storage";
 import type { DemoBundle } from "../seedData";
-import type { Asset, Observation, Project, Scope, Source, Tag } from "../types";
+import type {
+  Asset,
+  Observation,
+  Project,
+  Report,
+  Scope,
+  Source,
+  Tag,
+} from "../types";
 
 export type AppAction =
   | { type: "CREATE_PROJECT"; project: Project; scope: Scope }
@@ -13,6 +21,7 @@ export type AppAction =
   | { type: "CREATE_TAG"; tag: Tag }
   | { type: "CREATE_ASSET"; asset: Asset }
   | { type: "UPDATE_ASSET"; asset: Asset }
+  | { type: "SAVE_REPORT"; report: Report }
   | { type: "LOAD_DEMO_DATA"; bundle: DemoBundle }
   | { type: "IMPORT_DATA"; data: StorageData };
 
@@ -44,6 +53,7 @@ export function appReducer(state: StorageData, action: AppAction): StorageData {
           (observation) => observation.projectId !== action.id,
         ),
         assets: state.assets.filter((asset) => asset.projectId !== action.id),
+        reports: state.reports.filter((report) => report.projectId !== action.id),
       };
 
     case "CREATE_OBSERVATION":
@@ -95,6 +105,22 @@ export function appReducer(state: StorageData, action: AppAction): StorageData {
           asset.id === action.asset.id ? action.asset : asset,
         ),
       };
+
+    case "SAVE_REPORT": {
+      const exists = state.reports.some(
+        (report) => report.projectId === action.report.projectId,
+      );
+      return {
+        ...state,
+        reports: exists
+          ? state.reports.map((report) =>
+              report.projectId === action.report.projectId
+                ? action.report
+                : report,
+            )
+          : [...state.reports, action.report],
+      };
+    }
 
     case "LOAD_DEMO_DATA":
       return {

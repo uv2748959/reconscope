@@ -1,3 +1,24 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Report printing (FR-10). .no-print hides app chrome and editing
+   controls; .print-only mirrors editable text so the printed page
+   shows plain content instead of form fields. */
+.print-only {
+  display: none;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  body {
+    background: white;
+  }
+}

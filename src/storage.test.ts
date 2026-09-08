@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { STORAGE_KEY, loadData, resetData, saveData } from "./storage";
+import {
+  STORAGE_KEY,
+  loadData,
+  parseStorageData,
+  resetData,
+  saveData,
+} from "./storage";
 import type { StorageData } from "./storage";
 import type { Project } from "./types";
 
@@ -95,6 +101,37 @@ describe("saveData", () => {
     expect(() => saveData(data)).toThrow(/storage is full/i);
 
     setItemSpy.mockRestore();
+  });
+});
+
+describe("parseStorageData", () => {
+  it("parses a well-formed document without touching localStorage", () => {
+    const project = makeProject();
+    const json = JSON.stringify({
+      schemaVersion: 1,
+      projects: [project],
+      scopes: [],
+      assets: [],
+      observations: [],
+      sources: [],
+      tags: [],
+      reports: [],
+    });
+
+    const result = parseStorageData(json);
+
+    expect(result.projects).toEqual([project]);
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  it("throws a StorageError for corrupted JSON", () => {
+    expect(() => parseStorageData("{not valid json")).toThrow("corrupted");
+  });
+
+  it("throws a StorageError for a newer schema version", () => {
+    expect(() =>
+      parseStorageData(JSON.stringify({ schemaVersion: 2 })),
+    ).toThrow(/newer/);
   });
 });
 

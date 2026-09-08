@@ -54,21 +54,18 @@ function isQuotaExceeded(err: unknown): boolean {
   );
 }
 
-/** Reads and validates stored data. Returns an empty store if nothing has
- * been saved yet. Throws StorageError if the stored data is corrupted or
- * was written by a newer, incompatible schema version. */
-export function loadData(): StorageData {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw === null) {
-    return createEmptyData();
-  }
-
+/** Parses and validates a JSON string as a StorageData document — shared by
+ * loadData() (reading localStorage) and the JSON import feature (reading a
+ * user-selected file), so both go through the same validation. Throws
+ * StorageError if the JSON is corrupted or was written by a newer,
+ * incompatible schema version. */
+export function parseStorageData(raw: string): StorageData {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
     throw new StorageError(
-      "Stored ReconScope data is corrupted and could not be parsed.",
+      "This file is corrupted and could not be parsed as JSON.",
     );
   }
 
@@ -78,14 +75,14 @@ export function loadData(): StorageData {
     typeof (parsed as { schemaVersion?: unknown }).schemaVersion !== "number"
   ) {
     throw new StorageError(
-      "Stored ReconScope data is missing a valid schema version.",
+      "This file is missing a valid ReconScope schema version.",
     );
   }
 
   const data = parsed as StorageData;
   if (data.schemaVersion > CURRENT_SCHEMA_VERSION) {
     throw new StorageError(
-      `Stored ReconScope data uses schema version ${data.schemaVersion}, which is newer than the version this app supports (${CURRENT_SCHEMA_VERSION}).`,
+      `This file uses schema version ${data.schemaVersion}, which is newer than the version this app supports (${CURRENT_SCHEMA_VERSION}).`,
     );
   }
 
@@ -99,6 +96,17 @@ export function loadData(): StorageData {
     tags: data.tags ?? [],
     reports: data.reports ?? [],
   };
+}
+
+/** Reads and validates stored data. Returns an empty store if nothing has
+ * been saved yet. Throws StorageError if the stored data is corrupted or
+ * was written by a newer, incompatible schema version. */
+export function loadData(): StorageData {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw === null) {
+    return createEmptyData();
+  }
+  return parseStorageData(raw);
 }
 
 /** Persists the full store. Throws StorageError (instead of failing

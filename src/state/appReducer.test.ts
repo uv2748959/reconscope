@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 import { appReducer } from "./appReducer";
 import { createEmptyData } from "../storage";
 import { buildDemoBundle } from "../seedData";
-import type { Asset, Observation, Project, Scope, Source, Tag } from "../types";
+import type {
+  Asset,
+  Observation,
+  Project,
+  Report,
+  Scope,
+  Source,
+  Tag,
+} from "../types";
 
 function makeProject(overrides: Partial<Project> = {}): Project {
   return {
@@ -72,11 +80,12 @@ describe("appReducer — RENAME_PROJECT", () => {
 });
 
 describe("appReducer — DELETE_PROJECT", () => {
-  it("removes the project, its scope, its observations, and its assets, leaving other projects intact", () => {
+  it("removes the project, its scope, its observations, its assets, and its reports, leaving other projects intact", () => {
     const project = makeProject();
     const scope = makeScope();
     const observation = makeObservation({ projectId: project.id });
     const asset = makeAsset({ projectId: project.id });
+    const report = makeReport({ projectId: project.id });
     const other = makeProject({ id: "other-id" });
     const otherScope = makeScope({ projectId: "other-id" });
     const otherObservation = makeObservation({
@@ -84,6 +93,10 @@ describe("appReducer — DELETE_PROJECT", () => {
       projectId: "other-id",
     });
     const otherAsset = makeAsset({ id: "other-asset", projectId: "other-id" });
+    const otherReport = makeReport({
+      id: "other-report",
+      projectId: "other-id",
+    });
 
     const state = {
       ...createEmptyData(),
@@ -91,6 +104,7 @@ describe("appReducer — DELETE_PROJECT", () => {
       scopes: [scope, otherScope],
       observations: [observation, otherObservation],
       assets: [asset, otherAsset],
+      reports: [report, otherReport],
     };
 
     const result = appReducer(state, {
@@ -102,6 +116,7 @@ describe("appReducer — DELETE_PROJECT", () => {
     expect(result.scopes).toEqual([otherScope]);
     expect(result.observations).toEqual([otherObservation]);
     expect(result.assets).toEqual([otherAsset]);
+    expect(result.reports).toEqual([otherReport]);
   });
 });
 
@@ -153,6 +168,18 @@ function makeAsset(overrides: Partial<Asset> = {}): Asset {
     firstSeen: "2026-01-01T00:00:00.000Z",
     lastSeen: "2026-01-01T00:00:00.000Z",
     scopeStatus: "in_scope",
+    ...overrides,
+  };
+}
+
+function makeReport(overrides: Partial<Report> = {}): Report {
+  return {
+    id: "66666666-6666-4666-8666-666666666666",
+    projectId: "11111111-1111-4111-8111-111111111111",
+    generatedAt: "2026-01-01T00:00:00.000Z",
+    summary: "Summary text.",
+    limitations: "Limitations text.",
+    recommendations: "Recommendations text.",
     ...overrides,
   };
 }
@@ -295,5 +322,37 @@ describe("appReducer — IMPORT_DATA", () => {
 
     expect(result.projects).toEqual([existingProject, ...imported.projects]);
     expect(result.scopes).toEqual(imported.scopes);
+  });
+});
+
+describe("appReducer — SAVE_REPORT", () => {
+  it("adds a report when the project has none yet", () => {
+    const report = makeReport();
+    const result = appReducer(createEmptyData(), {
+      type: "SAVE_REPORT",
+      report,
+    });
+    expect(result.reports).toEqual([report]);
+  });
+
+  it("replaces the existing report for the same project instead of duplicating it", () => {
+    const original = makeReport({ summary: "First draft." });
+    const otherProjectReport = makeReport({
+      id: "other-report",
+      projectId: "other-project",
+    });
+    const state = {
+      ...createEmptyData(),
+      reports: [original, otherProjectReport],
+    };
+
+    const updated: Report = {
+      ...original,
+      summary: "Revised draft.",
+      generatedAt: "2026-02-01T00:00:00.000Z",
+    };
+    const result = appReducer(state, { type: "SAVE_REPORT", report: updated });
+
+    expect(result.reports).toEqual([updated, otherProjectReport]);
   });
 });
