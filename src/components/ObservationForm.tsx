@@ -508,7 +508,7 @@ export default function ObservationForm({
           Cancel
         </button>
         {!canSave && (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-600" role="status">
             {trimmedValue.length === 0
               ? "Enter a value for this observation."
               : "Enter a name for the new source."}

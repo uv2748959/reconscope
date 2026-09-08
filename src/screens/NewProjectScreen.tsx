@@ -279,7 +279,7 @@ export default function NewProjectScreen() {
             Save and activate project
           </button>
           {!canSave && (
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-slate-600" role="status">
               {!hasRequiredFields
                 ? "Enter a project name, company alias, and at least one authorized root domain."
                 : "You must confirm authorization before this project can be activated."}
