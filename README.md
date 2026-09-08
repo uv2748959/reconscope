@@ -1,229 +1,118 @@
 # ReconScope
 
-ReconScope is a web application created for the Reconnaissance phase of an ethical hacking project. The application provides a structured environment for documenting information gathered during reconnaissance while keeping the process organized and within a defined scope.
+**A browser-based workspace for documenting the passive reconnaissance phase of an authorized security assessment.**
 
-The project was created as an educational tool to demonstrate how information collected during reconnaissance can be recorded, categorized, reviewed, and turned into a report.
+🔗 **Live demo:** https://uv2748959.github.io/reconscope/
 
-## Live Web App
+> Built as a course project for *Pentesting and Ethical Hacking*. ReconScope is deliberately limited to the **Recon** phase — it contains no port scanning, vulnerability scanning, credential testing, or exploitation code, and it never makes an outbound network request at runtime.
 
-ReconScope can be accessed here:
-
-https://uv2748959.github.io/reconscope/
+---
 
 ## What It Does
 
-ReconScope helps organize information collected during the reconnaissance phase of a security assessment.
+Reconnaissance produces a lot of small facts — a subdomain here, a job title there, a technology fingerprint from a page header — collected from scattered sources (browser tabs, notes, terminal scrollback). ReconScope gives those facts one place to live, with the metadata that matters for a professional writeup: **where it came from, when, how confident you are, and whether it's actually in scope.**
 
-The application allows a user to:
+With ReconScope you can:
 
-- Create and manage reconnaissance projects
-- Define the scope of an assessment
-- Record domains, subdomains, IP addresses, and other discovered assets
-- Document reconnaissance observations and evidence
-- Categorize collected information
-- Distinguish between confirmed and unverified information
-- Record sources and collection methods
-- Review the reconnaissance footprint
-- Generate a structured reconnaissance report
-- Add limitations and recommendations to the report
-- Export and import project data using JSON
-- Print the completed report
-- Review information about passive and active reconnaissance
-- Identify the boundary between reconnaissance and scanning
-
-ReconScope also includes a fictional demonstration project that can be loaded directly from the application.
+- **Define a project's scope** — root domain(s), subdomains, IP ranges, and exclusions — and explicitly acknowledge authorization before the project activates. A project cannot be used until this is done.
+- **Log observations** by category (domain, subdomain, IP, DNS record, certificate, technology, person/role, social profile, document metadata, or a free-form note), each with a source, collection time, confidence level, tags, and analyst notes.
+- **Automatically build a footprint** — every observation about a domain/IP/etc. is deduplicated into an asset, and subdomains are automatically nested under their parent domain to form a relationship tree.
+- **See scope violations immediately** — any hostname or IP that falls outside your declared scope is flagged **out of scope** in red, everywhere it appears, and excluded from footprint counts.
+- **Search, filter, and verify evidence** — by category, tag, confidence, status, or date range — and mark each item unverified, verified, duplicate, or out of scope.
+- **View a dashboard** summarizing scope status, footprint by category, evidence totals, recent activity, and unresolved (unverified) leads.
+- **Generate a report** — scope, methods, footprint summary, evidence (split into confirmed vs. unverified), sources, limitations, and next-step recommendations — and print it to PDF via the browser's own print dialog.
+- **Export/import a project as JSON**, so you can back it up or move it to another browser.
+- **Load a fictional demo project** (Northstar Bicycle Repair, a made-up bicycle shop on `northstar-bicycle.example`) pre-populated with realistic sample data, so you can explore every screen without typing anything in first.
 
 ## How It Works
 
-ReconScope is a client-side React application. Project information is stored locally in the user's browser rather than being sent to an external server.
+ReconScope is a **single-page React app with no backend.** Everything happens in your browser.
 
-A reconnaissance project begins by defining the target and authorized scope. Information collected during reconnaissance can then be entered into the Evidence Log.
+- **State lives in `localStorage`**, under one key (`reconscope.v1`), as a single JSON document containing every project, scope, asset, observation, source, tag, and report. There is no server, no account, and no database — closing the tab doesn't lose your data, but clearing site data will.
+- **A single reducer (`src/state/appReducer.ts`)** is the only thing allowed to change that data. Every user action — creating a project, saving an observation, loading the demo, importing a file — is a dispatched action, which keeps the data flow predictable and easy to test.
+- **A single scope-check function (`src/scopeCheck.ts`)** decides whether a value is `in_scope`, `out_of_scope`, or `undetermined`. It's the only place that logic exists in the whole app, so the same rule applies everywhere a scope badge appears (hostname matching handles subdomains and exclusions; IPs are checked against CIDR ranges; anything that isn't a real hostname or IP — a technology name, a person's role, a note — is `undetermined` and is never flagged red).
+- **Assets are derived automatically**, not entered by hand. When you save an observation, the app looks for an existing asset with the same type and value; if none exists, it creates one (and, for subdomains, nests it under the matching domain asset). This is what powers the Assets screen's relationship tree and the Dashboard's footprint counts.
+- **The report is printed, not rendered as a PDF file.** There's a print-only stylesheet (`@media print` rules in `src/index.css`) that hides all navigation chrome and turns editable text fields into plain text, and a "Print / Save as PDF" button just calls the browser's native `window.print()`. No PDF library is bundled.
+- **Export/import** uses the browser's own `Blob` + download-link mechanism for export, and `FileReader` + the same schema validation `localStorage` loading uses for import — so a re-imported file goes through exactly the same integrity checks as normal data.
 
-The application uses the recorded evidence to help organize discovered assets and build a reconnaissance footprint. The collected information is then used to generate a report containing the project's scope, methods, assets, evidence, sources, limitations, and recommendations.
+### Tech stack
 
-ReconScope is intended for educational use and for documenting reconnaissance performed against systems that the user is authorized to assess.
+| Layer       | Choice                                                             |
+|-------------|---------------------------------------------------------------------|
+| Framework   | React 18 + TypeScript, built with Vite                              |
+| Styling     | Tailwind CSS (no component library)                                 |
+| Routing     | react-router-dom                                                     |
+| State       | React Context + `useReducer` (no Redux/Zustand/MobX)                |
+| Persistence | `localStorage` only (no IndexedDB, no server)                       |
+| Testing     | Vitest + React Testing Library                                      |
+| Deployment  | Static build, hosted on GitHub Pages via GitHub Actions             |
+
+Runtime dependencies are intentionally minimal — just `react`, `react-dom`, and `react-router-dom`. Everything else (Tailwind, Vite, Vitest, TypeScript) is a dev/build-time dependency, and the production bundle is a handful of static files with no server-side code at all.
+
+### Project structure
+
+```
+src/
+├── types.ts              # Every data model (Project, Scope, Asset, Observation, Source, Tag, Report)
+├── storage.ts             # The only module that touches localStorage
+├── scopeCheck.ts           # The only place in-scope/out-of-scope logic exists
+├── seedData.ts             # Builds the fictional demo dataset
+├── methodologyText.ts       # Passive-recon explanation, shared by two screens
+├── constants.ts            # Shared dropdown options and label lookups
+├── state/
+│   ├── appReducer.ts        # Every state transition in the app
+│   └── AppContext.tsx        # React Context wiring the reducer to localStorage
+├── screens/                # One component per route (Projects, Evidence Log, Report, etc.)
+├── components/              # Shared UI (app shell/nav, asset tree, observation form/card)
+└── utils/                   # Small pure helpers (date formatting, asset matching, JSON export)
+```
 
 ## How to Install
 
-The hosted version of ReconScope does not require installation. It can be opened directly using the Live Web App link above.
-
-To run ReconScope locally, the following software is required:
-
-- [Node.js](https://nodejs.org/)
-- npm
-- Git
-
-### Local Installation
-
-1. Clone the GitHub repository:
+**Prerequisites:** [Node.js](https://nodejs.org/) 18 or later (includes npm).
 
 ```bash
+# 1. Clone the repository
 git clone https://github.com/uv2748959/reconscope.git
-```
-
-2. Navigate into the project directory:
-
-```bash
 cd reconscope
-```
 
-3. Install the required dependencies:
-
-```bash
+# 2. Install dependencies
 npm install
-```
 
-4. Start the development server:
-
-```bash
+# 3. Start the dev server
 npm run dev
 ```
 
-5. Vite will display a local address, typically:
-
-```text
-http://localhost:5173/
-```
-
-6. Open the displayed address in a web browser.
-
-To create a production build, run:
-
-```bash
-npm run build
-```
+Then open the URL Vite prints (usually `http://localhost:5173`).
 
 ## Step-by-Step Instructions
 
-### 1. Open ReconScope
+1. Open ReconScope using the live demo or run it locally.
+2. Create a new reconnaissance project or select **Load fictional demo**.
+3. Define the authorized scope, including domains, subdomains, IP ranges, and exclusions.
+4. Acknowledge authorization to activate the project.
+5. Open the **Evidence Log** and record reconnaissance observations.
+6. Review the **Assets** screen to see the footprint derived from the recorded evidence.
+7. Use the Dashboard to review scope status, evidence totals, and unresolved leads.
+8. Open **Safety & Methodology** to review passive reconnaissance and the boundary between Recon and Scanning.
+9. Open the **Report** screen to review confirmed and unverified evidence, sources, limitations, and recommendations.
+10. Use **Print / Save as PDF** to create a report, or export the project as JSON for backup.
 
-Open the hosted application or start the application locally.
-
-### 2. Create a Project
-
-Create a new reconnaissance project and enter the information requested by the application.
-
-The project provides a workspace for keeping reconnaissance information separated and organized.
-
-### 3. Define the Scope
-
-Specify the systems that are authorized for the reconnaissance project.
-
-Clearly defining scope is important because information may be discovered that is related to the target but is not authorized for further investigation.
-
-### 4. Record Reconnaissance Evidence
-
-Use the Evidence Log to record information discovered during reconnaissance.
-
-Evidence can include information such as:
-
-- Domains
-- Subdomains
-- IP addresses
-- Technologies
-- Publicly available organizational information
-- Other observations relevant to the reconnaissance phase
-
-ReconScope allows observations to be categorized and their verification status recorded.
-
-### 5. Review Discovered Assets
-
-Review the assets identified from the reconnaissance evidence.
-
-This provides a summarized view of the target's known footprint based on the information entered into the project.
-
-### 6. Review the Methodology
-
-Open the Methodology section to review the differences between passive and active reconnaissance and the boundary between reconnaissance and scanning.
-
-### 7. Generate the Report
-
-Open the Report section to review the information collected during the project.
-
-The report organizes information including:
-
-- Scope
-- Reconnaissance methods
-- Discovered footprint
-- Evidence
-- Sources
-- Limitations
-- Recommendations
-
-Limitations and recommendations can be edited before the report is finalized.
-
-### 8. Export or Print the Project
-
-Project information can be exported as JSON for later use.
-
-The report can also be printed using the browser's printing functionality.
-
-## Fictional Demo
-
-ReconScope includes a built-in fictional demonstration project called **Northstar Bicycle Repair**.
-
-Selecting **Load fictional demo** populates the application with sample reconnaissance information, including:
-
-- A fictional root domain
-- Multiple subdomains
-- An authorized IP range
-- An example of an out-of-scope IP address
-- Technology observations
-- Fictional staff information
-- Reconnaissance observations across multiple categories
-
-The demo allows the features of ReconScope to be explored without performing reconnaissance against a real organization.
-
-All organizations, people, assets, and observations contained in the demonstration data are fictional and are included for educational purposes.
-
-## Reconnaissance Methodology
-
-ReconScope distinguishes between passive and active reconnaissance.
-
-**Passive reconnaissance** involves gathering information without directly interacting with the target systems. Examples may include reviewing publicly available information and other open sources.
-
-**Active reconnaissance** involves direct interaction with a target and therefore requires careful attention to authorization and scope.
-
-ReconScope also emphasizes the boundary between reconnaissance and the next phase of an assessment, **Scanning**. The application is focused on organizing and documenting reconnaissance rather than performing vulnerability scanning or exploitation.
-
-## Technologies Used
-
-ReconScope was built using:
-
-- React
-- TypeScript
-- Vite
-- React Router
-- HTML
-- CSS
-- Git
-- GitHub
-- GitHub Pages
-
-## Data Storage
-
-ReconScope stores project information locally in the user's browser. No backend server or external database is required.
-
-Because the data is stored locally, users can export their project data as JSON if they want to create a backup or transfer it to another browser.
-
-## Testing
-
-The project includes automated tests for application functionality.
-
-A production build can be verified with:
+### Other commands
 
 ```bash
-npm run build
+npm run build      # Type-check and build a production bundle into dist/
+npm run preview    # Serve the production build locally
+npm run test       # Run the test suite (Vitest)
 ```
 
-## Ethical Use
+The app works completely offline once loaded — there's no API key, no environment variable, and no network dependency at runtime.
 
-ReconScope was created for educational purposes.
+## Safety Notes
 
-Reconnaissance and other cybersecurity activities should only be performed against systems that you own or have explicit authorization to assess. Users are responsible for remaining within the authorized scope of an assessment.
+ReconScope is built for **authorized, passive reconnaissance only.** It:
 
-## Author
-
-**Ulises Valdivia**
-
-Cybersecurity Student
+- Never sends a network request to the target it's documenting — everything about a target is entered by hand or loaded from the bundled demo dataset.
+- Has no port scanner, vulnerability scanner, credential-testing feature, or exploit code, and never will (see the in-app **Safety & Methodology** page for the reasoning).
+- Requires an explicit scope and a recorded authorization acknowledgment before a project can be marked active.
+- Ships a demo dataset that only uses domains and IP ranges reserved for documentation (`.example`, and the `192.0.2.0/24` / `198.51.100.0/24` / `203.0.113.0/24` ranges from RFC 2606 and RFC 5737) — it never references a real company, domain, or IP address.
