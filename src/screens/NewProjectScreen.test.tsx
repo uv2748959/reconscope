@@ -76,7 +76,7 @@ describe("NewProjectScreen — FR-03 authorization gate", () => {
     );
 
     expect(
-      await screen.findByText(/placeholder screen for project/i),
+      await screen.findByRole("heading", { name: /dashboard/i }),
     ).toBeInTheDocument();
 
     const stored = JSON.parse(localStorage.getItem("reconscope.v1")!);

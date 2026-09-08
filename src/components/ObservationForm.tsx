@@ -11,7 +11,10 @@ import {
   fromDatetimeLocalValue,
   toDatetimeLocalValue,
 } from "../utils/dateInput";
+import { findMatchingAsset, inferParentAssetId } from "../utils/assets";
+import { isInScope } from "../scopeCheck";
 import type {
+  Asset,
   Confidence,
   ObsStatus,
   Observation,
@@ -111,6 +114,8 @@ export default function ObservationForm({
     event.preventDefault();
     if (!canSave) return;
 
+    const now = new Date().toISOString();
+
     let finalSourceId: string | null =
       sourceId && !isAddingNewSource ? sourceId : null;
 
@@ -128,10 +133,54 @@ export default function ObservationForm({
       finalSourceId = source.id;
     }
 
+    // Every category but "note" tracks a deduplicated Asset, keeping the
+    // Assets screen and dashboard footprint counts (FR-07/FR-13) in sync
+    // with what Evidence Log records.
+    let assetId: string | null = null;
+    if (category !== "note") {
+      const assetType = category;
+      const scope = state.scopes.find((s) => s.projectId === projectId);
+      const scopeStatus = scope
+        ? isInScope(trimmedValue, scope)
+        : "undetermined";
+      const existingAsset = findMatchingAsset(
+        state.assets,
+        projectId,
+        assetType,
+        trimmedValue,
+      );
+
+      if (existingAsset) {
+        dispatch({
+          type: "UPDATE_ASSET",
+          asset: { ...existingAsset, lastSeen: now, scopeStatus },
+        });
+        assetId = existingAsset.id;
+      } else {
+        const asset: Asset = {
+          id: crypto.randomUUID(),
+          projectId,
+          type: assetType,
+          value: trimmedValue,
+          parentAssetId: inferParentAssetId(
+            state.assets,
+            projectId,
+            assetType,
+            trimmedValue,
+          ),
+          firstSeen: now,
+          lastSeen: now,
+          scopeStatus,
+        };
+        dispatch({ type: "CREATE_ASSET", asset });
+        assetId = asset.id;
+      }
+    }
+
     const observation: Observation = {
       id: initial?.id ?? crypto.randomUUID(),
       projectId,
-      assetId: initial?.assetId ?? null,
+      assetId,
       category,
       value: trimmedValue,
       method: initial?.method ?? "manual",

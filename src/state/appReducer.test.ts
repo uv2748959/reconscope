@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { appReducer } from "./appReducer";
 import { createEmptyData } from "../storage";
-import type { Observation, Project, Scope, Source, Tag } from "../types";
+import type { Asset, Observation, Project, Scope, Source, Tag } from "../types";
 
 function makeProject(overrides: Partial<Project> = {}): Project {
   return {
@@ -71,22 +71,25 @@ describe("appReducer — RENAME_PROJECT", () => {
 });
 
 describe("appReducer — DELETE_PROJECT", () => {
-  it("removes the project, its scope, and its observations, leaving other projects intact", () => {
+  it("removes the project, its scope, its observations, and its assets, leaving other projects intact", () => {
     const project = makeProject();
     const scope = makeScope();
     const observation = makeObservation({ projectId: project.id });
+    const asset = makeAsset({ projectId: project.id });
     const other = makeProject({ id: "other-id" });
     const otherScope = makeScope({ projectId: "other-id" });
     const otherObservation = makeObservation({
       id: "other-observation",
       projectId: "other-id",
     });
+    const otherAsset = makeAsset({ id: "other-asset", projectId: "other-id" });
 
     const state = {
       ...createEmptyData(),
       projects: [project, other],
       scopes: [scope, otherScope],
       observations: [observation, otherObservation],
+      assets: [asset, otherAsset],
     };
 
     const result = appReducer(state, {
@@ -97,6 +100,7 @@ describe("appReducer — DELETE_PROJECT", () => {
     expect(result.projects).toEqual([other]);
     expect(result.scopes).toEqual([otherScope]);
     expect(result.observations).toEqual([otherObservation]);
+    expect(result.assets).toEqual([otherAsset]);
   });
 });
 
@@ -134,6 +138,20 @@ function makeTag(overrides: Partial<Tag> = {}): Tag {
     id: "44444444-4444-4444-8444-444444444444",
     label: "verified-lead",
     color: "#3b82f6",
+    ...overrides,
+  };
+}
+
+function makeAsset(overrides: Partial<Asset> = {}): Asset {
+  return {
+    id: "55555555-5555-4555-8555-555555555555",
+    projectId: "11111111-1111-4111-8111-111111111111",
+    type: "domain",
+    value: "northstar-bicycle.example",
+    parentAssetId: null,
+    firstSeen: "2026-01-01T00:00:00.000Z",
+    lastSeen: "2026-01-01T00:00:00.000Z",
+    scopeStatus: "in_scope",
     ...overrides,
   };
 }
@@ -205,5 +223,35 @@ describe("appReducer — CREATE_TAG", () => {
       tag,
     });
     expect(result.tags).toEqual([tag]);
+  });
+});
+
+describe("appReducer — CREATE_ASSET", () => {
+  it("adds the asset", () => {
+    const asset = makeAsset();
+    const result = appReducer(createEmptyData(), {
+      type: "CREATE_ASSET",
+      asset,
+    });
+    expect(result.assets).toEqual([asset]);
+  });
+});
+
+describe("appReducer — UPDATE_ASSET", () => {
+  it("replaces only the matching asset", () => {
+    const asset = makeAsset();
+    const other = makeAsset({ id: "other-asset" });
+    const state = {
+      ...createEmptyData(),
+      assets: [asset, other],
+    };
+
+    const updated = { ...asset, scopeStatus: "out_of_scope" as const };
+    const result = appReducer(state, {
+      type: "UPDATE_ASSET",
+      asset: updated,
+    });
+
+    expect(result.assets).toEqual([updated, other]);
   });
 });

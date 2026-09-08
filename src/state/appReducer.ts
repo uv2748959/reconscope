@@ -1,5 +1,5 @@
 import type { StorageData } from "../storage";
-import type { Observation, Project, Scope, Source, Tag } from "../types";
+import type { Asset, Observation, Project, Scope, Source, Tag } from "../types";
 
 export type AppAction =
   | { type: "CREATE_PROJECT"; project: Project; scope: Scope }
@@ -9,7 +9,9 @@ export type AppAction =
   | { type: "UPDATE_OBSERVATION"; observation: Observation }
   | { type: "DELETE_OBSERVATION"; id: string }
   | { type: "CREATE_SOURCE"; source: Source }
-  | { type: "CREATE_TAG"; tag: Tag };
+  | { type: "CREATE_TAG"; tag: Tag }
+  | { type: "CREATE_ASSET"; asset: Asset }
+  | { type: "UPDATE_ASSET"; asset: Asset };
 
 export function appReducer(state: StorageData, action: AppAction): StorageData {
   switch (action.type) {
@@ -38,6 +40,7 @@ export function appReducer(state: StorageData, action: AppAction): StorageData {
         observations: state.observations.filter(
           (observation) => observation.projectId !== action.id,
         ),
+        assets: state.assets.filter((asset) => asset.projectId !== action.id),
       };
 
     case "CREATE_OBSERVATION":
@@ -74,6 +77,20 @@ export function appReducer(state: StorageData, action: AppAction): StorageData {
       return {
         ...state,
         tags: [...state.tags, action.tag],
+      };
+
+    case "CREATE_ASSET":
+      return {
+        ...state,
+        assets: [...state.assets, action.asset],
+      };
+
+    case "UPDATE_ASSET":
+      return {
+        ...state,
+        assets: state.assets.map((asset) =>
+          asset.id === action.asset.id ? action.asset : asset,
+        ),
       };
 
     default:
