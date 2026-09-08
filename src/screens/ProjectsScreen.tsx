@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../state/AppContext";
+import { buildDemoBundle, DEMO_COMPANY_ALIAS } from "../seedData";
 import type { Project } from "../types";
 
 function AuthorizationBadge({ authorized }: { authorized: boolean }) {
@@ -139,33 +140,107 @@ function ProjectCard({ project }: { project: Project }) {
   );
 }
 
+function DemoDataButton({ existingDemoId }: { existingDemoId: string | null }) {
+  const { dispatch } = useApp();
+  const navigate = useNavigate();
+  const [confirmingReset, setConfirmingReset] = useState(false);
+
+  function loadFreshDemo() {
+    const bundle = buildDemoBundle();
+    dispatch({ type: "LOAD_DEMO_DATA", bundle });
+    navigate(`/projects/${bundle.project.id}`);
+  }
+
+  function resetDemo() {
+    if (existingDemoId) {
+      dispatch({ type: "DELETE_PROJECT", id: existingDemoId });
+    }
+    loadFreshDemo();
+    setConfirmingReset(false);
+  }
+
+  if (!existingDemoId) {
+    return (
+      <button
+        type="button"
+        onClick={loadFreshDemo}
+        className="rounded border border-slate-300 px-3 py-2 text-sm font-medium"
+      >
+        Load fictional demo
+      </button>
+    );
+  }
+
+  if (confirmingReset) {
+    return (
+      <span className="flex flex-wrap items-center gap-2 text-sm">
+        Discard demo changes and reload fresh sample data?
+        <button
+          type="button"
+          onClick={resetDemo}
+          className="rounded bg-red-700 px-3 py-1.5 font-medium text-white"
+        >
+          Confirm reset
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirmingReset(false)}
+          className="rounded border border-slate-300 px-3 py-1.5"
+        >
+          Cancel
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setConfirmingReset(true)}
+      className="rounded border border-slate-300 px-3 py-2 text-sm font-medium"
+    >
+      Reset demo data
+    </button>
+  );
+}
+
 export default function ProjectsScreen() {
   const { state } = useApp();
+  const existingDemoId =
+    state.projects.find((p) => p.companyAlias === DEMO_COMPANY_ALIAS)?.id ??
+    null;
 
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Projects</h1>
-        <Link
-          to="/projects/new"
-          className="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white"
-        >
-          New Project
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <DemoDataButton existingDemoId={existingDemoId} />
+          <Link
+            to="/projects/new"
+            className="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white"
+          >
+            New Project
+          </Link>
+        </div>
       </div>
 
       {state.projects.length === 0 ? (
         <div className="mt-6 rounded border border-dashed border-slate-300 p-8 text-center">
           <p className="text-slate-600">
             No projects yet. Create a project to record scope and
-            authorization before collecting evidence.
+            authorization before collecting evidence, or load the fictional
+            demo to explore the app with sample data.
           </p>
-          <Link
-            to="/projects/new"
-            className="mt-4 inline-block rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white"
-          >
-            New Project
-          </Link>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/projects/new"
+              className="rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white"
+            >
+              New Project
+            </Link>
+            <DemoDataButton existingDemoId={existingDemoId} />
+          </div>
         </div>
       ) : (
         <ul className="mt-6 space-y-3">

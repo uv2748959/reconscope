@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { appReducer } from "./appReducer";
 import { createEmptyData } from "../storage";
+import { buildDemoBundle } from "../seedData";
 import type { Asset, Observation, Project, Scope, Source, Tag } from "../types";
 
 function makeProject(overrides: Partial<Project> = {}): Project {
@@ -253,5 +254,46 @@ describe("appReducer — UPDATE_ASSET", () => {
     });
 
     expect(result.assets).toEqual([updated, other]);
+  });
+});
+
+describe("appReducer — LOAD_DEMO_DATA", () => {
+  it("appends the whole demo bundle in one shot, alongside any existing data", () => {
+    const existingProject = makeProject({ id: "existing-project" });
+    const state = {
+      ...createEmptyData(),
+      projects: [existingProject],
+    };
+
+    const bundle = buildDemoBundle();
+    const result = appReducer(state, { type: "LOAD_DEMO_DATA", bundle });
+
+    expect(result.projects).toEqual([existingProject, bundle.project]);
+    expect(result.scopes).toEqual([bundle.scope]);
+    expect(result.assets).toEqual(bundle.assets);
+    expect(result.observations).toEqual(bundle.observations);
+    expect(result.sources).toEqual(bundle.sources);
+    expect(result.tags).toEqual(bundle.tags);
+  });
+});
+
+describe("appReducer — IMPORT_DATA", () => {
+  it("appends an imported store's records to the current state", () => {
+    const existingProject = makeProject({ id: "existing-project" });
+    const state = {
+      ...createEmptyData(),
+      projects: [existingProject],
+    };
+
+    const imported = {
+      ...createEmptyData(),
+      projects: [makeProject({ id: "imported-project" })],
+      scopes: [makeScope({ projectId: "imported-project" })],
+    };
+
+    const result = appReducer(state, { type: "IMPORT_DATA", data: imported });
+
+    expect(result.projects).toEqual([existingProject, ...imported.projects]);
+    expect(result.scopes).toEqual(imported.scopes);
   });
 });

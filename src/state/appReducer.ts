@@ -1,4 +1,5 @@
 import type { StorageData } from "../storage";
+import type { DemoBundle } from "../seedData";
 import type { Asset, Observation, Project, Scope, Source, Tag } from "../types";
 
 export type AppAction =
@@ -11,7 +12,9 @@ export type AppAction =
   | { type: "CREATE_SOURCE"; source: Source }
   | { type: "CREATE_TAG"; tag: Tag }
   | { type: "CREATE_ASSET"; asset: Asset }
-  | { type: "UPDATE_ASSET"; asset: Asset };
+  | { type: "UPDATE_ASSET"; asset: Asset }
+  | { type: "LOAD_DEMO_DATA"; bundle: DemoBundle }
+  | { type: "IMPORT_DATA"; data: StorageData };
 
 export function appReducer(state: StorageData, action: AppAction): StorageData {
   switch (action.type) {
@@ -91,6 +94,29 @@ export function appReducer(state: StorageData, action: AppAction): StorageData {
         assets: state.assets.map((asset) =>
           asset.id === action.asset.id ? action.asset : asset,
         ),
+      };
+
+    case "LOAD_DEMO_DATA":
+      return {
+        ...state,
+        projects: [...state.projects, action.bundle.project],
+        scopes: [...state.scopes, action.bundle.scope],
+        assets: [...state.assets, ...action.bundle.assets],
+        observations: [...state.observations, ...action.bundle.observations],
+        sources: [...state.sources, ...action.bundle.sources],
+        tags: [...state.tags, ...action.bundle.tags],
+      };
+
+    case "IMPORT_DATA":
+      return {
+        ...state,
+        projects: [...state.projects, ...action.data.projects],
+        scopes: [...state.scopes, ...action.data.scopes],
+        assets: [...state.assets, ...action.data.assets],
+        observations: [...state.observations, ...action.data.observations],
+        sources: [...state.sources, ...action.data.sources],
+        tags: [...state.tags, ...action.data.tags],
+        reports: [...state.reports, ...action.data.reports],
       };
 
     default:

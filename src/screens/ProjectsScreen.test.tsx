@@ -124,3 +124,45 @@ describe("ProjectsScreen", () => {
     expect(stored.scopes).toHaveLength(0);
   });
 });
+
+describe("ProjectsScreen — FR-04 demo data", () => {
+  it("loads the fictional demo when none exists yet", () => {
+    renderProjectsScreen();
+
+    const [loadButton] = screen.getAllByRole("button", {
+      name: /load fictional demo/i,
+    });
+    fireEvent.click(loadButton);
+
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
+    expect(stored.projects).toHaveLength(1);
+    expect(stored.projects[0].companyAlias).toBe("Northstar Bicycle Repair");
+    expect(stored.observations.length).toBeGreaterThan(0);
+  });
+
+  it("offers Reset demo data once a demo project exists, and requires confirmation", () => {
+    seedProject();
+    renderProjectsScreen();
+
+    expect(
+      screen.getByRole("button", { name: /reset demo data/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /load fictional demo/i }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /reset demo data/i }));
+    expect(
+      screen.getByText(/discard demo changes and reload/i),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /confirm reset/i }));
+
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
+    expect(stored.projects).toHaveLength(1);
+    expect(stored.projects[0].id).not.toBe(
+      "11111111-1111-4111-8111-111111111111",
+    );
+    expect(stored.projects[0].companyAlias).toBe("Northstar Bicycle Repair");
+  });
+});
