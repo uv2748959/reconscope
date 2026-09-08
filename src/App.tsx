@@ -12,7 +12,7 @@ import MethodologyScreen from "./screens/MethodologyScreen";
 export default function App() {
   return (
     <AppProvider>
-      <BrowserRouter>
+      <BrowserRouter basename="/reconscope">
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/" element={<ProjectsScreen />} />
