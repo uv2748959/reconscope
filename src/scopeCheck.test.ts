@@ -153,4 +153,11 @@ describe("isInScope — edge cases", () => {
     // return "undetermined" and must never be flagged red.
     expect(isInScope("192.0.2.999", scope)).toBe("undetermined");
   });
+
+  it("returns undetermined for an incomplete dotted-quad value", () => {
+    const scope = makeScope();
+    // "192.0.2" has only three octets, so it is not a valid IP either —
+    // same reasoning as the malformed-octet case above.
+    expect(isInScope("192.0.2", scope)).toBe("undetermined");
+  });
 });

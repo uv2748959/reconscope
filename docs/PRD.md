@@ -304,6 +304,8 @@ A single pure function, isInScope(value, scope), returns "in_scope", "out_of_sco
 
 - Comparison is case-insensitive; trailing dots and leading "www." are normalized before comparison.
 
+- A value that looks like an IP address (dot-separated digit groups, e.g. 192.0.2.999 or 192.0.2) but fails IPv4 octet/format validation is not a valid address, so scope does not apply — it returns "undetermined" rather than falling through to hostname matching.
+
 ### Build order
 
 Build in this order, one chunk per working session. Each chunk must compile and run before the next begins.

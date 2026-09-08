@@ -19,6 +19,16 @@ function isHostnameFormat(value: string): boolean {
   return HOSTNAME_RE.test(value);
 }
 
+const IPV4_ATTEMPT_RE = /^\d+(\.\d+)+$/;
+
+/** True for a value made up only of dot-separated digit groups, e.g.
+ * "192.0.2.999" or "192.0.2" — someone clearly meant an IP address, even
+ * though it fails IPv4 validation. Such a value must not fall through to
+ * hostname matching. */
+function looksLikeIPv4Attempt(value: string): boolean {
+  return IPV4_ATTEMPT_RE.test(value);
+}
+
 function isCidrOrIp(value: string): boolean {
   const [ipPart] = value.split("/");
   return isIPv4Format(ipPart);
@@ -102,6 +112,10 @@ export function isInScope(value: string, scope: Scope): ScopeStatus {
 
   if (isIPv4Format(trimmed)) {
     return checkIp(trimmed, scope);
+  }
+
+  if (looksLikeIPv4Attempt(trimmed)) {
+    return "undetermined";
   }
 
   if (isHostnameFormat(trimmed.toLowerCase())) {
